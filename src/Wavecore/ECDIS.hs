@@ -1,7 +1,10 @@
-module Wavecore.ECDIS (ecdis) where
+module Wavecore.ECDIS
+       (ecdis
+       ,module Wavecore.ECDIS.Types) where
 
 import Wavecore.ECDIS.Internal
+import Wavecore.ECDIS.Types
 
 ecdis :: ()
-ecdis = ()
+ecdis = _ecdis
 

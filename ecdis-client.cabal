@@ -25,10 +25,6 @@ Flag dev
   Description: Turn on development settings.
   Default: False
 
-Flag library-only 
-  Description: Build only the library
-  Default: False
-
 library
   hs-source-dirs: src
 
@@ -48,13 +44,16 @@ library
     dimensional-tf
 
   exposed-modules:
-    Wavecore.ECDIS
-
+    Wavecore.ECDIS,
+    Wavecore.ECDIS.Types
+    
   other-modules:
     Wavecore.ECDIS.Internal
 
 executable ecdis-client
-    if impl(ghc) || flag(library-only)
+    if impl(ghcjs) 
+        Buildable: True
+    else
         Buildable: False
     main-is:        main.hs
     hs-source-dirs: app
