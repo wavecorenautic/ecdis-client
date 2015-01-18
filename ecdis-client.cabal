@@ -1,0 +1,69 @@
+name:                ecdis-client 
+version:             0.1.0
+synopsis:            ECDIS Client
+license:             BSD3 
+license-file:        LICENSE.txt
+author:              Markus Barenhoff <alios@alios.org>
+maintainer:          Markus Barenhoff <alios@alios.org>
+stability:           experimental
+homepage:            http://github.com/alios/ecdis-html5-client
+bug-reports:         http://github.com/alios/ecdis-html5-client
+copyright:           Copyright (c) 2015 Markus Barenhoff
+category:            Web
+build-type:          Simple
+cabal-version:       >= 1.8
+
+extra-source-files:
+  .gitignore
+  README.md
+
+source-repository head
+  type: git
+  location: git://github.com/alios/ecdis-html5-client
+
+Flag dev
+  Description: Turn on development settings.
+  Default: False
+
+Flag library-only 
+  Description: Build only the library
+  Default: False
+
+library
+  hs-source-dirs: src
+
+  if flag(dev)
+    ghc-options: -Wall -fwarn-tabs -O0
+    cpp-options: -DDEVELOPMENT
+  else
+    ghc-options: -Wall -fwarn-tabs -O2
+
+  build-depends:
+    base,
+    containers,
+    mtl,
+    sodium,
+    text,
+    transformers,
+    dimensional-tf
+
+  exposed-modules:
+    Wavecore.ECDIS
+
+  other-modules:
+    Wavecore.ECDIS.Internal
+
+executable ecdis-client
+    if impl(ghc) || flag(library-only)
+        Buildable: False
+    main-is:        main.hs
+    hs-source-dirs: app
+    if impl(ghcjs)
+      build-depends:  base, ghcjs-base, ecdis-client
+    if flag(dev)
+      ghc-options: -Wall -fwarn-tabs -O0 -threaded
+      cpp-options: -DDEVELOPMENT
+    else
+      ghc-options: -Wall -fwarn-tabs -O2 -threaded 
+
+
