@@ -1,3 +1,6 @@
 [submodule "lib/alder"]
 	path = lib/alder
 	url = git@github.com:ghcjs/ghcjs-sodium.git
+[submodule "lib/ghcjs-jquery"]
+	path = lib/ghcjs-jquery
+	url = https://github.com/ghcjs/ghcjs-jquery
