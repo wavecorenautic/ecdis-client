@@ -37,11 +37,13 @@ library
   build-depends:
     base,
     containers,
+    time,
     mtl,
     sodium,
     text,
     transformers,
-    dimensional-tf
+    dimensional-tf,
+    geodetic
 
   exposed-modules:
     Wavecore.ECDIS,
@@ -51,14 +53,13 @@ library
     Wavecore.ECDIS.Internal
 
 executable ecdis-client
-    if impl(ghcjs) 
-        Buildable: True
-    else
-        Buildable: False
     main-is:        main.hs
     hs-source-dirs: app
     if impl(ghcjs)
+      Buildable: True
       build-depends:  base, ghcjs-base, ecdis-client
+    else
+        Buildable: False
     if flag(dev)
       ghc-options: -Wall -fwarn-tabs -O0 -threaded
       cpp-options: -DDEVELOPMENT

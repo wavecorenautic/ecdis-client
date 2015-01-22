@@ -1,0 +1,3 @@
+[submodule "lib/alder"]
+	path = lib/alder
+	url = git@github.com:ghcjs/ghcjs-sodium.git
