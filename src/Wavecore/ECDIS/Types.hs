@@ -15,6 +15,19 @@ type Coordinate = GeodeticCoordinate WGS84 Double
 type SensorId = Text
 
 
+data ECIDS =
+  ECIDS { _bECIDSClock :: SwitchClock
+        }
+
+ecids :: Behavior UTCTime -> Behavior Coordinate -> Event () -> Reactive ECIDS
+ecids bt bp e = do
+  cl <- clock bt (fmap lookupTimeZone bp) >>= switchClock e
+  return $ ECIDS { _bECIDSClock = cl }
+  
+
+lookupTimeZone :: Coordinate -> TimeZone
+lookupTimeZone c = utc -- TODO lookup timezone on coordinate
+
 data Clock =
   Clock { _bClockUTCTime :: Behavior TimeOfDay
         , _bClockUTCDate :: Behavior Day
@@ -40,19 +53,17 @@ clock bUTCTime bLocalTimeZone =
       _bClockLocalDate = _bld,
       _bClockTZ = bTZ
     }
-
   
 data SwitchClock =
   SwitchClock { _bSwitchClockTime  :: Behavior TimeOfDay
               , _bSwitchClockDate  :: Behavior Day
               , _bSwitchClockTZ    :: Behavior TimeZone
               , _bSwitchClockIsUTC :: Behavior Bool
+              , _bSwitchClockInnerClock :: Clock
               }
 
-switchClock :: Behavior UTCTime -> Behavior TimeZone -> Event () ->
-               Reactive SwitchClock
-switchClock bT bTZ e = do
-  cl <- clock bT bTZ
+switchClock :: Event () -> Clock -> Reactive SwitchClock
+switchClock e cl = do
   bIsUTC <- collectE (\_ s -> (not s, not s)) True e
   let onUTC :: Behavior a -> Behavior a -> Reactive (Behavior (Behavior a))
       onUTC a b = hold a $ fmap (\isUTC -> if isUTC then a else b) bIsUTC
@@ -66,8 +77,11 @@ switchClock bT bTZ e = do
     _bSwitchClockTime = bDisplayTime,
     _bSwitchClockDate = bDisplayDate,
     _bSwitchClockTZ = bDisplayTZ,
-    _bSwitchClockIsUTC = fmap ((==) utc) bDisplayTZ
+    _bSwitchClockIsUTC = fmap ((==) utc) bDisplayTZ,
+    _bSwitchClockInnerClock = cl
     }
+
+
 
 mkOnChange :: Eq a => Behavior a -> Reactive (Behavior a)
 mkOnChange b = do
