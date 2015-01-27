@@ -1,8 +1,13 @@
 module Main where
 
-import Wavecore.ECDIS (ecdis)
+import Prelude ()
+import Numeric.Units.Dimensional.TF.Prelude
+import Data.Time
+import Wavecore.ECDIS
+import Data.Geodetic
+import FRP.Sodium
 
 main :: IO ()
 main = do
-    return ecdis
+  return ()
 

@@ -1,13 +1,16 @@
-module Wavecore.ECDIS
-       (ecdis
-       ,module Wavecore.ECDIS.Types) where
+module Wavecore.ECDIS where
 
-
-import Wavecore.ECDIS.Internal
 import Wavecore.ECDIS.Types
+import Wavecore.ECDIS.ECDIS
 
-ecdis :: ()
-ecdis = _ecdis
+import Prelude ()
+import Numeric.Units.Dimensional.TF.Prelude
+import Data.Time
+import FRP.Sodium
+import Data.Geodetic
+
+  
+
 
 
 

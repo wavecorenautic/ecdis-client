@@ -1,5 +1,5 @@
 name:                ecdis-client 
-version:             0.1.0
+version:             0.1.1
 synopsis:            ECDIS Client
 license:             BSD3 
 license-file:        LICENSE.txt
@@ -48,6 +48,9 @@ library
   exposed-modules:
     Wavecore.ECDIS,
     Wavecore.ECDIS.Types
+    Wavecore.ECDIS.Clock
+    Wavecore.ECDIS.ECDIS
+    Wavecore.ECDIS.INS
     
   other-modules:
     Wavecore.ECDIS.Internal
@@ -57,7 +60,13 @@ executable ecdis-client
     hs-source-dirs: app
     if impl(ghcjs)
       Buildable: True
-      build-depends:  base, ghcjs-base, ecdis-client
+      build-depends: base,
+                     time,
+                     ghcjs-base,
+                     ecdis-client,
+                     dimensional-tf,
+                     geodetic,
+                     sodium
     else
         Buildable: False
     if flag(dev)
