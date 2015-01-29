@@ -4,10 +4,10 @@ import Prelude ()
 import Numeric.Units.Dimensional.TF.Prelude
 import Data.Time
 import FRP.Sodium
+import Control.Applicative
 import Wavecore.ECDIS.Types
 import Wavecore.ECDIS.Clock
 import Wavecore.ECDIS.INS
-
 
 
 data ECDISCmd =
@@ -16,7 +16,11 @@ data ECDISCmd =
 
 data ECIDS =
   ECIDS { _bECIDSClock :: SwitchClock
+        , _bECIDSIns :: INS
         }
+
+resetPos :: Coordinate
+resetPos = mkCoord (0 *~ degree) (0 *~ degree) (0 *~ meter)
 
 class ECIDSSystem sys where
   mkTimeB :: sys -> Reactive (Behavior UTCTime)
@@ -25,25 +29,38 @@ class ECIDSSystem sys where
   mkPosEs :: sys -> Reactive (Event (SensorId, Coordinate))
   mkLogEs :: sys -> Reactive (Event (SensorId, SMG))
   mkCourseEs :: sys -> Reactive (Event (SensorId, COG))
-  mkEcids :: sys -> Reactive ECIDS
-  mkEcids sys = do
-    bt <- mkTimeB sys
-    e <- mkCmdE sys
+  mkINS :: sys -> Behavior UTCTime -> Reactive INS
+  mkINS sys bt = do
     posEs <- mkPosEs sys
     logEs <- mkLogEs sys
     courseEs <- mkCourseEs sys
-
-    myIns <- ins $ INSInput {
+    ins $ INSInput {
       _bInsTime = bt,
       _eInsPos = posEs,
       _eInsLog = logEs,
       _eInsCourse = courseEs
-      }
-             
-    let bpos = undefined
+      }    
+  mkEcids :: sys -> Reactive ECIDS
+  mkEcids sys = do
+    -- the time
+    bt <- mkTimeB sys
+
+    -- the cmd events
+    e <- mkCmdE sys
+
+    -- the INS
+    myIns <- mkINS sys bt
+    
+    -- set internal position to 0/0 until INS delivers valid data
+    let bPosInt = _bInsPos myIns
+
+    -- the switched clock
     let eSwClk = cmdEvent SwitchClockMode e        
-    cl <- clock bt (fmap lookupTimeZone bpos) >>= switchClock eSwClk
-    return $ ECIDS { _bECIDSClock = cl }
+    cl <- clock bt (fmap lookupTimeZone bPosInt) >>= switchClock eSwClk
+    
+    return $ ECIDS { _bECIDSClock = cl
+                   , _bECIDSIns = myIns
+                   }
   
 
 cmdEvent :: (Eq cmd) => cmd -> Event cmd -> Event ()

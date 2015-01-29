@@ -1,8 +1,12 @@
 module Wavecore.ECDIS.INS where
 
+import Prelude ()
+import Numeric.Units.Dimensional.TF.Prelude
 import Data.Time
 import FRP.Sodium
 import Wavecore.ECDIS.Types
+
+
 
 
 data INSInput =
@@ -13,11 +17,29 @@ data INSInput =
            }
 
 data INS =
-  INS { _bInsSOG :: Behavior (Maybe SOG) -- | speed over ground
-      , _bInsSMG :: Behavior (Maybe SMG) -- | speed made good
-      , _bInsCOG :: Behavior (Maybe COG) -- | course over ground
-      , _bInsCMG :: Behavior (Maybe CMG) -- | course made good
+  INS { _bInsPos :: Behavior Coordinate -- | position
+      , _bInsSOG :: Behavior SOG -- | speed over ground
+      , _bInsSMG :: Behavior SMG -- | speed made good
+      , _bInsCOG :: Behavior COG -- | course over ground
+      , _bInsCMG :: Behavior CMG -- | course made good
       }
 
+
+x :: Coordinate -> Coordinate -> Length Double
+x a b = undefined
+
 ins :: INSInput -> Reactive INS
-ins i = undefined
+ins i = do
+
+  return $ INS {
+    _bInsPos = undefined,
+    _bInsSOG = undefined,
+    _bInsSMG = undefined,
+    _bInsCOG = undefined,
+    _bInsCMG = undefined
+    }
+
+
+type INSState = (UTCTime, (Coordinate, SMG, COG))
+
+

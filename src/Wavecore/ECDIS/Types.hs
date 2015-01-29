@@ -8,6 +8,11 @@ import Data.Text (Text)
 
 type Coordinate = GeodeticCoordinate WGS84 Double
 
+mkCoord :: PlaneAngle Double -> PlaneAngle Double -> Length Double ->
+                Coordinate
+mkCoord = WGS84
+
+
 -- | Speed Over Ground
 newtype SOG = SOG (Velocity Double) deriving (Eq, Ord, Show)
 
