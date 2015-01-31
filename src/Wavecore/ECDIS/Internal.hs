@@ -15,5 +15,6 @@ onChange b =
   snapshot (\old new -> if (old == new)
                         then Nothing
                         else Just new) (updates b) b
-                                                            
+
+
 

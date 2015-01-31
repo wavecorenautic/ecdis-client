@@ -1,78 +1,79 @@
 name:                ecdis-client 
 version:             0.1.1
 synopsis:            ECDIS Client
+description:         Electronic Chart Display and Information System
 license:             BSD3 
 license-file:        LICENSE.txt
 author:              Markus Barenhoff <alios@alios.org>
 maintainer:          Markus Barenhoff <alios@alios.org>
 stability:           experimental
-homepage:            http://github.com/alios/ecdis-html5-client
-bug-reports:         http://github.com/alios/ecdis-html5-client
+homepage:            http://github.com/alios/ecdis-client
+bug-reports:         http://github.com/alios/ecdis-client
 copyright:           Copyright (c) 2015 Markus Barenhoff
 category:            Web
 build-type:          Simple
 cabal-version:       >= 1.8
 
-extra-source-files:
-  .gitignore
-  README.md
+data-dir:            app_static
+data-files:          index.html
+                     js/jquery-2.1.3.min.js
+                     js/modernizr-2.8.3.min.js
+                     css/normalize-3.0.2.css
+                     css/main.css
+
+extra-source-files: .gitignore
+                    README.md
 
 source-repository head
   type: git
   location: git://github.com/alios/ecdis-client
 
-Flag dev
-  Description: Turn on development settings.
-  Default: False
-
 library
   hs-source-dirs: src
 
-  if flag(dev)
-    ghc-options: -Wall -fwarn-tabs -O0
-    cpp-options: -DDEVELOPMENT
-  else
-    ghc-options: -Wall -fwarn-tabs -O2
+  ghc-options: -Wall -fwarn-tabs
 
-  build-depends:
-    base,
-    containers,
-    time,
-    mtl,
-    sodium,
-    text,
-    transformers,
-    dimensional-tf,
-    geodetic
+  build-depends: base,
+                 containers,
+                 time,
+                 mtl,
+                 lens,
+                 sodium,
+                 text,
+                 transformers,
+                 radian,
+                 coordinate,
+                 geodetic
 
-  exposed-modules:
-    Wavecore.ECDIS,
-    Wavecore.ECDIS.Types
-    Wavecore.ECDIS.Clock
-    Wavecore.ECDIS.ECDIS
-    Wavecore.ECDIS.INS
-    
-  other-modules:
-    Wavecore.ECDIS.Internal
+  exposed-modules: Wavecore.ECDIS,
+--                   Wavecore.ECDIS.Types
+                   Wavecore.ECDIS.Clock
+  --                 Wavecore.ECDIS.ECDIS
+   --                Wavecore.ECDIS.INS
+                   Data.Geo.UTM    
+  other-modules: Wavecore.ECDIS.Internal
 
 executable ecdis-client
     main-is:        main.hs
     hs-source-dirs: app
     if impl(ghcjs)
-      Buildable: True
+      buildable:     True
+      ghc-options:   -Wall -fwarn-tabs
       build-depends: base,
+                     old-locale,
+                     data-default,
+                     transformers,
                      time,
+                     lens,
+                     text,
                      ghcjs-base,
+                     ghcjs-dom,
+                     ghcjs-jquery,
                      ecdis-client,
-                     dimensional-tf,
+                     coordinate,
                      geodetic,
                      sodium
     else
-        Buildable: False
-    if flag(dev)
-      ghc-options: -Wall -fwarn-tabs -O0 -threaded
-      cpp-options: -DDEVELOPMENT
-    else
-      ghc-options: -Wall -fwarn-tabs -O2 -threaded 
+      buildable:     False
 
 
