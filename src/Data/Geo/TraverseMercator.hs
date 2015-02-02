@@ -14,15 +14,19 @@ import           Data.Geo.Geodetic
 import           Data.Radian
 
 
-infinity, negInfinity, epsilon, overflow, tol :: Double
-infinity = (read "Infinity")
-negInfinity = infinity * (-1)
-epsilon = 2 ** (-53)
-tol = 0.1 * sqrt(epsilon)
-overflow = 1 / (epsilon * epsilon)
+class (RealFloat f) => GeoFloat f where
+  infinity :: f
+  negInfinity :: f
+  negInfinity = infinity * (-1)
+  epsilon :: f
+  overflow :: f
+  overflow = 1 / (epsilon * epsilon)
+  tol :: f
+  tol = 0.1 * sqrt(epsilon)
 
-numit :: Int
-numit = 5
+instance GeoFloat Double where
+  infinity = (read "Infinity")
+  epsilon = 2 ** (-53)
 
 isFinite :: RealFloat a => a -> Bool
 isFinite x = not $ isNaN x || isInfinite x
@@ -44,8 +48,7 @@ data TraverseMercator t =
       _TMk0 :: t
     } deriving (Show, Eq)
 
-
-tanx :: Double -> Double
+tanx :: GeoFloat f => f -> f
 tanx x =
   let t = tan x
   in if (x >= 0)
@@ -69,7 +72,7 @@ hypot x' y' =
       y = __y / ty
   in x * (sqrt(1 + y * y))
       
-taupf :: TraverseMercator Double -> Double -> Double
+taupf :: GeoFloat f => TraverseMercator f -> f ->  f
 taupf tm tau =
   let tau1 = hypot 1 tau
       sig  = sinh . eatanhe tm $ tau / tau1
@@ -77,11 +80,12 @@ taupf tm tau =
      else (hypot 1 sig) * tau - sig * tau1
 
 
-tauf :: TraverseMercator Double -> Double -> Double
+tauf :: GeoFloat f => TraverseMercator f -> f -> f
 tauf tm taup =
   let _tau = taup / _TMe2m tm
       _stol = tol * (max 1 $ abs taup)
       _e2m = _TMe2m tm
+      numit = (length $ _TMalps tm) - 1
       tauL i tau =
         let tau1 = hypot 1 tau
             sig = sinh . eatanhe tm $ tau / tau1
@@ -119,9 +123,7 @@ angDiff x y =
                then _d + 360 else _d
   in d + t
 
-tmForward :: TraverseMercator Double
-             -> Double -> Double -> Double ->
-             (Double, Double, Double, Double)  
+tmForward :: GeoFloat f => TraverseMercator f -> f -> f -> f -> ((f, f), f, f)  
 tmForward tm lon0' lat' lon' =
   let cs@(lat, _, lon, _, _) =
         tmNormalizeInput lon0' lat' lon'
@@ -158,8 +160,7 @@ tmNormalizeInput lon0' lat' lon' =
         else (_latsign, __lon)
   in (lat, latsign, lon, lonsign, backside)
 
-tmParameters :: TraverseMercator Double
-           -> Double -> Double -> (Double, Double, Double, Double)
+tmParameters :: GeoFloat f => TraverseMercator f -> f -> f -> (f, f, f, f)
 tmParameters tm lat lon =
   let e2m = _TMe2m tm
       e2  = _TMe2 tm
@@ -222,7 +223,7 @@ tmFinal :: RealFloat t =>
            -> t
            -> t
            -> (t, t, (t, t, t, t, t, t, t, t))
-           -> (t, t, t, t)
+           -> ((t, t), t, t)
 tmFinal tm 
   (_, latsign, _, lonsign, backside) (etap, xip, gamma_, k_) s0 sh0 c0 ch0
   (ar_, ai_, (xi0_, _, eta0_, _, yr0_, yr1_, yi0_, yi1_)) =
@@ -239,7 +240,7 @@ tmFinal tm
       k = _k * (_TMk0 tm)
       y = (_TMa1 tm) * (_TMk0 tm) * latsign * (if backside then pi - xi else xi)
       x = (_TMa1 tm) * (_TMk0 tm) * eta * lonsign
-  in (x,y,gamma,k)
+  in ((x,y),gamma,k)
 
 
 
