@@ -50,8 +50,10 @@ library
                    Wavecore.ECDIS.Clock
   --                 Wavecore.ECDIS.ECDIS
    --                Wavecore.ECDIS.INS
-                   Data.Geo.UTM    
+                   Data.Geo.UTM
+                   Data.Geo.TraverseMercator
   other-modules: Wavecore.ECDIS.Internal
+                 Data.Geo.Math
 
 executable ecdis-client
     main-is:        main.hs
