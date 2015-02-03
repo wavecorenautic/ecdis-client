@@ -31,7 +31,7 @@ mkSystemClock f = do
   tid <- forkIO $ timerLoop
   return (tid, t)
 
-
+windowSizeB :: IO (Behavior (Int, Int)
 windowSizeB = do
   wnd' <- currentWindow
   let wnd = maybe (error "windowResizeB: unable to get currentWindow") id wnd'

@@ -3,28 +3,34 @@
 module Data.Geo.UTM where
 
 
+import Prelude ()
+import Numeric.Units.Dimensional.TF.Prelude
 
-import           Control.Lens
+import           Control.Lens ((^.))
 import           Data.Geo.Geodetic
 import           Data.Geo.TraverseMercator
 
     
 utmTraverseMercator :: TraverseMercator Double
 utmTraverseMercator =
-    case (traverseMercator (wgs84 ^. _SemiMajor) (wgs84 ^. _Flattening) 0.9996 alphaBeta6) of
+    case (traverseMercator
+          ((wgs84 ^. _SemiMajor) *~ meter)
+          ((wgs84 ^. _Flattening) *~ one)
+          (0.9996 *~ one)
+          tmAlphaBeta6) of
       Just tm -> tm
       Nothing -> error "utmTraverseMercator: unable to create kernel for wgs84"
                 
-utmForward :: Double -> Double -> Double -> TM Double             
+--utmForward :: PlaneAngle Double -> PlaneAngle Double -> Double -> TM Double
 utmForward = tmForward utmTraverseMercator
 
-utmTauf, utmTaupf :: Double -> Double             
+--utmTauf, utmTaupf :: PlaneAngle Double -> PlaneAngle Double             
 utmTauf = tauf utmTraverseMercator
 utmTaupf = taupf utmTraverseMercator          
              
 
 
-t = utmForward 9 52 7.5
+t = utmForward (9 *~ degree) (52 *~ degree) (7.5 *~ degree)
 
 
 {-                      n = 5762100.5

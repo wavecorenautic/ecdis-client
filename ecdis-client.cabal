@@ -41,6 +41,7 @@ library
                  sodium,
                  text,
                  transformers,
+                 dimensional-tf,
                  radian,
                  coordinate,
                  geodetic
@@ -54,6 +55,7 @@ library
                    Data.Geo.TraverseMercator
   other-modules: Wavecore.ECDIS.Internal
                  Data.Geo.Math
+                 Data.Geo.AlphaBeta
 
 executable ecdis-client
     main-is:        main.hs
