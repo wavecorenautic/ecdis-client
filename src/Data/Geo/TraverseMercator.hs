@@ -14,7 +14,7 @@ module Data.Geo.TraverseMercator
 import Prelude ()
 import Numeric.Units.Dimensional.TF.Prelude
     
-import           Control.Lens hiding (_1, _2, (*~))
+
 import           Data.Geo.Math
 import           Data.Geo.AlphaBeta
     
