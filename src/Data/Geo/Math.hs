@@ -37,6 +37,10 @@ isFinite u x' =
   let x = x' /~ u
   in not $ isNaN x || isInfinite x
 
+isNanD :: RealFloat a => Unit d a -> Quantity d a -> Bool
+isNanD u x' =
+  let x = x' /~ u
+  in isNaN x
 
 hypot :: (Ord t, Floating t) => Dimensionless t -> Dimensionless t -> Dimensionless t
 hypot x' y' =
