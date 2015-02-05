@@ -6,6 +6,7 @@ module Data.Geo.TransverseMercator
        , tmAlphaBeta6
        , TM (..)
        , tmForward
+       , tmReverse
        , tauf
        , taupf
        ) where
@@ -41,6 +42,12 @@ data TM t = TM {
   _projectionScale :: Dimensionless t -- unity
   } deriving (Show, Eq)
 
+data TMR t = TMR {
+  _rLatitude :: PlaneAngle t,
+  _rLongitude :: PlaneAngle t,
+  _rMeridianConvergence :: PlaneAngle t, -- degree
+  _rPojectionScale :: Dimensionless t -- unity
+  } deriving (Show, Eq)
 
 traverseMercator :: RealFloat a =>
                    Length a -> Dimensionless a -> Dimensionless a ->
@@ -115,6 +122,83 @@ tauf tm taup =
      else tauL 0 _tau
 
 
+tmReverse :: GeoFloat f => TransverseMercator f ->
+            PlaneAngle f -> Length f -> Length f -> TMR f
+tmReverse tm lon0 x y =
+  let _a1 = _TMa1 tm
+      _k0 = _TMk0 tm
+      sf = (_a1 * _k0)
+      __xi = y / sf
+      _eta = x / sf
+      xisign = (signum $ xi /~ one) *~ one
+      etasign = (signum $ eta /~ one) *~ one
+      _xi = _xi * xisign
+      eta = _eta * etasign
+      backside = _xi > (pi / _2)
+      xi = if backside then pi - _xi else _xi
+      c0 = cos $ _2 * xi
+      ch0 = cosh $ _2 * eta
+      s0 = sin $ _2 * xi
+      sh0 = sinh $ _2 * eta
+      ar = _2 * c0 * ch0
+      ai = _2 * s0 * sh0
+      _bet = _TMbets tm
+      maxpow = pred $ length _bet
+      startp = if (odd maxpow) then (pred maxpow) else maxpow
+      mat0 = (if (odd maxpow) then (_0 - (_bet !! 0)) else _0, _0 -- xip0/1
+              , _0, _0  -- etap0/1
+              , if (odd maxpow)
+                then _0 - _2 * (fromIntegral maxpow *~ one) * (_bet !! maxpow)
+                else _0, _0 -- yr0/1
+              , _0, _0) -- yi0/1
+      mat1 = tmEvalMatrix ai ar _bet startp mat0
+      (lam', phi', gamma', k') = tmRvFinalize tm xi eta s0 c0 sh0 ch0 mat1
+      lat = phi' * xisign
+      _lon = if backside
+             then ((180 *~ degree) - lam') * etasign
+             else lam' * etasign
+      lon = angNormalize $ lon + angNormalize lon0
+      gamma = if backside then ((180 *~ degree) - gamma') * xisign
+              else gamma' * xisign
+      k = k' * (_TMk0 tm)
+  in TMR {
+     _rLatitude  = lat,
+     _rLongitude = lon,
+     _rMeridianConvergence = gamma,
+     _rPojectionScale = k
+     }
+
+tmRvFinalize ::   (GeoFloat a) => TransverseMercator a
+  -> Dimensionless a -> Dimensionless a -> Dimensionless a -> Dimensionless a
+  -> Dimensionless a -> Dimensionless a
+  -> (Dimensionless a, Dimensionless a,
+      (Dimensionless a, Dimensionless a, Dimensionless a, Dimensionless a,
+       Dimensionless a, Dimensionless a, Dimensionless a, Dimensionless a))
+  -> (Dimensionless a, Dimensionless a, Dimensionless a, Dimensionless a )      
+tmRvFinalize tm xi eta s0 c0 sh0 ch0
+  (ar_, ai_, (xip0_, _, etap0_, _, yr0_, yr1_, yi0_, yi1_)) =
+  let yr1 = _1 - yr1_ + ar_ * yr0_ - ai_ * yi0_
+      yi1 = _0 - yi1_ + ai_ * yr0_ + ar_ * yi0_
+      ar = s0 * ch0
+      ai = c0 * sh0
+      xip  = xi  + ar * xip0_ - ai * etap0_
+      etap = eta + ai * xip0_ + ar * etap0_
+      gamma = atan2 yi1 yr1
+      k = (_TMb1 tm) / (hypot yr1 yi1)
+      s = sinh etap
+      c = max _0 $ cos xip
+      r = hypot s c
+  in if (r /= _0)
+     then let _lam = atan2 s c
+              _taup = (sin xip) / r
+              _tau = tauf tm _taup
+              _phi = atan _tau
+              _gamma = gamma + (atan $ tanx xip * tanh etap)
+              _k = k * (sqrt $ (_TMe2m tm) + (_TMe2 tm) * (cos _phi * cos _phi))
+                   * (hypot _1 _tau) * r
+          in (_lam, _phi, _gamma, _k)
+     else (_0, pi / _2, gamma, k)
+
 
 tmForward :: GeoFloat f => TransverseMercator f ->
             PlaneAngle f -> PlaneAngle f -> PlaneAngle f -> TM f
@@ -137,9 +221,9 @@ tmForward tm lon0' lat' lon' =
              , _0, _0
              , if (odd maxpow)
                then _2 * ((fromIntegral maxpow) *~ one) * (alp !! maxpow)
-               else _0, _0, _0, _0 )
+               else _0, _0, _0, _0 )          
   in tmFwFinal tm cs params s0 sh0 c0 ch0 .
-     tmFwEvalMatrix ai ar alp startp $ mat0
+     tmEvalMatrix ai ar alp startp $ mat0
 
 
 tmFwNormalizeInput :: (Ord t, Floating t) => PlaneAngle t -> PlaneAngle t ->
@@ -180,18 +264,18 @@ tmFwParameters tm lat lon =
           )            
 
 
-tmFwEvalMatrix :: Fractional t => Dimensionless t
+tmEvalMatrix :: Fractional t => Dimensionless t
                 -> Dimensionless t
                 -> [Dimensionless t]
                 -> Int
                 -> (Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t)
                 -> (Dimensionless t, Dimensionless t, (Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t))
 
-tmFwEvalMatrix ar ai _alp n params =
-  (ar / _2, ai / _2, tmFwEvalMatrix' ar ai _alp n params)
+tmEvalMatrix ar ai _coeffs n params =
+  (ar / _2, ai / _2, tmEvalMatrix' ar ai _coeffs n params)
 
 
-tmFwEvalMatrix' :: Num t =>
+tmEvalMatrix' :: Num t =>
                  Dimensionless t
                  -> Dimensionless t
                  -> [Dimensionless t]
@@ -200,24 +284,25 @@ tmFwEvalMatrix' :: Num t =>
                  -> (Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t)
 
  
-tmFwEvalMatrix'
-  ar ai alp n (_xi0, _xi1, _eta0, _eta1, _yr0, _yr1, _yi0, _yi1) =
-    let xi1  = ar * _xi0 - ai * _eta0 - _xi1 + (alp !! (n))
+tmEvalMatrix'
+  ar ai coeffs n (_xi0, _xi1, _eta0, _eta1, _yr0, _yr1, _yi0, _yi1) =
+    let xi1  = ar * _xi0 - ai * _eta0 - _xi1 + (coeffs !! (n))
         eta1 = ai * _xi0 + ar * _eta0 - _eta1
-        yr1  = ar * _yr0 - ai * _yi0 - _yr1 + _2 * (fromIntegral n *~ one) * (alp !! (n))
+        yr1  = ar * _yr0 - ai * _yi0 - _yr1 + _2 * (fromIntegral n *~ one) * (coeffs !! (n))
         yi1  = ai * _yr0 + ar * _yi0 - _yi1
             
         n' = pred n
-        xi0 = ar * xi1 - ai * eta1 - _xi0 + (alp !! (n'))
+        xi0 = ar * xi1 - ai * eta1 - _xi0 + (coeffs !! (n'))
         eta0 = ai * xi1 + ar * eta1 - _eta0
         yr0 = ar * yr1 - ai * yi1 - _yr0 +
-              _2 * (fromIntegral n' *~ one) * (alp !! (n'))
+              _2 * (fromIntegral n' *~ one) * (coeffs !! (n'))
         yi0 = ai * yr1 + ar * yi1 - _yi0
         res = (xi0, xi1, eta0, eta1, yr0, yr1, yi0, yi1)
         n'' = pred n'
     in if (n'' <= 0)
        then res
-       else tmFwEvalMatrix' ar ai alp (n'') res
+       else tmEvalMatrix' ar ai coeffs (n'') res
+
 
 
 tmFwFinal :: RealFloat t =>
