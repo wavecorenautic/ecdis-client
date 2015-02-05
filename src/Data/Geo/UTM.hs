@@ -7,10 +7,12 @@ import qualified Prelude as P
 import Numeric.Units.Dimensional.TF.Prelude
 
 import           Control.Lens ((^.))
+import           Data.Text (Text)
+import           Text.Printf    
+import qualified Data.Text as T    
 import           Data.Geo.Geodetic
 import           Data.Geo.Math
 import           Data.Geo.TransverseMercator
-
 
 data ZoneSpec =
   MINPSEUDOZONE |
@@ -126,8 +128,28 @@ utmForward' lat lon =
                        tm { _easting = _easting tm + (falseeasting !! ind)
                           , _northing = _northing tm + (falsenorthing !! ind)
                           })
-          
 
+
+utmForward lat lon = do
+    (zone, northp, tm) <- utmForward' lat lon
+    zs <- encodeZone zone northp False
+    return (zs, tm)         
+                         
+encodeZone :: Int -> Bool -> Bool -> Maybe Text
+encodeZone zone northp abbrev
+    | zone == zoneSpec' INVALID = Nothing
+    | (not $ (zone >= zoneSpec' MINZONE) &&  (zone <= zoneSpec' MAXZONE))
+        = Nothing
+    | otherwise =
+       let z = if (zone /= zoneSpec' UPS)
+               then printf "%02d" zone
+               else ""
+           ns = if (abbrev)
+                then if northp then "n" else "s"
+                else if northp then "north" else "south"
+       in Just $ T.pack $ z ++ ns
+
+    
 _lat_,_lon_ :: PlaneAngle Double
 _lat_ = (49 *~ degree) + (29 *~ arcminute) + (13.6 *~ arcsecond)
 _lon_ = (8 *~ degree) + (27 *~ arcminute) + (58.6 *~ arcsecond)
@@ -135,7 +157,7 @@ _lon_ = (8 *~ degree) + (27 *~ arcminute) + (58.6 *~ arcsecond)
 --    49° 29′ 13.6″ N
 --    8° 27′ 58.6″ E
 
-t = utmForward' _lat_ _lon_
+t = utmForward _lat_ _lon_
 
 {-                      n = 5762100.5
         e = 397027
