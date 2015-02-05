@@ -9,7 +9,7 @@ import Numeric.Units.Dimensional.TF.Prelude
 import           Control.Lens ((^.))
 import           Data.Geo.Geodetic
 import           Data.Geo.Math
-import           Data.Geo.TraverseMercator
+import           Data.Geo.TransverseMercator
 
 
 data ZoneSpec =
@@ -56,19 +56,19 @@ falsenorthing =
   [ upseasting * tile, upseasting * tile
   , maxutmSrow * tile, minutmNrow * tile ]
   
-utmTraverseMercator :: TraverseMercator Double
-utmTraverseMercator =
+utmTransverseMercator :: TransverseMercator Double
+utmTransverseMercator =
     case (traverseMercator
           ((wgs84 ^. _SemiMajor) *~ meter)
           ((wgs84 ^. _Flattening) *~ one)
           (0.9996 *~ one)
           tmAlphaBeta6) of
       Just tm -> tm
-      Nothing -> error "utmTraverseMercator: unable to create kernel for wgs84"
+      Nothing -> error "utmTransverseMercator: unable to create kernel for wgs84"
                 
 utmTauf, utmTaupf :: PlaneAngle Double -> PlaneAngle Double             
-utmTauf = tauf utmTraverseMercator
-utmTaupf = taupf utmTraverseMercator          
+utmTauf = tauf utmTransverseMercator
+utmTaupf = taupf utmTransverseMercator          
 
 centralMeridian :: (GeoFloat a) => Int ->  PlaneAngle a           
 centralMeridian z =  fromIntegral ((P.-) ((P.*) 6 z) 183) *~ degree
@@ -117,7 +117,7 @@ utmForward' lat lon =
       dlon = abs $ dlon - (360 *~ degree) * fdlon
       utmp = zone1 /= zoneSpec' UPS
       tm = if (utmp)
-           then tmForward utmTraverseMercator lon0 lat lon
+           then tmForward utmTransverseMercator lon0 lat lon
            else error $ "UPS not implemented yet"
       ind :: Int
       ind = (P.+) (if utmp then 2 else 0) (if northp1 then 1 else 0)

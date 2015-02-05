@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Data.Geo.TraverseMercator
-       ( TraverseMercator (..)       
+module Data.Geo.TransverseMercator
+       ( TransverseMercator (..)       
        , traverseMercator
        , tmAlphaBeta6
        , TM (..)
@@ -18,8 +18,8 @@ import Numeric.Units.Dimensional.TF.Prelude
 import           Data.Geo.Math
 import           Data.Geo.AlphaBeta
     
-data TraverseMercator t =
-    TraverseMercator {
+data TransverseMercator t =
+    TransverseMercator {
       _TMf :: Dimensionless t,
       _TMalps :: ! [Dimensionless t],
       _TMbets :: ! [Dimensionless t],
@@ -46,7 +46,7 @@ traverseMercator :: RealFloat a =>
                    Length a -> Dimensionless a -> Dimensionless a ->
                    (Dimensionless a ->
                         (Dimensionless a, [Dimensionless a], [Dimensionless a]))
-                       -> Maybe (TraverseMercator a)
+                       -> Maybe (TransverseMercator a)
 traverseMercator _a __f _k0 mkAlpBet =
     let 
         _f = if (__f < _1) then __f else _1 / __f
@@ -58,7 +58,7 @@ traverseMercator _a __f _k0 mkAlpBet =
         _n = _f / (_2 - _f)             
         (_b1, _alps,_bets) = mkAlpBet _n
         _a1 = _b1 * _a
-        tm = TraverseMercator {
+        tm = TransverseMercator {
                _TMalps = _alps,
                _TMbets = _bets,
                _TMf = _f,
@@ -79,7 +79,7 @@ traverseMercator _a __f _k0 mkAlpBet =
            else Just tm
 
             
-eatanhe :: (Ord s, Floating s) => TraverseMercator s -> PlaneAngle s -> PlaneAngle s
+eatanhe :: (Ord s, Floating s) => TransverseMercator s -> PlaneAngle s -> PlaneAngle s
 eatanhe tm = eatanhe' (_TMf tm) (_TMe tm)
 
 eatanhe' :: (Ord a, Num a, Floating s) => Dimensionless a -> PlaneAngle s -> PlaneAngle s -> PlaneAngle s
@@ -88,7 +88,7 @@ eatanhe' _f _e x
   | otherwise = _e * (atan $ _e * x)
 
 
-taupf :: GeoFloat f => TraverseMercator f -> PlaneAngle f -> PlaneAngle f
+taupf :: GeoFloat f => TransverseMercator f -> PlaneAngle f -> PlaneAngle f
 taupf tm _tau =
   let tau1 = hypot _1 _tau
       sig  = sinh . eatanhe tm $ _tau / tau1
@@ -96,7 +96,7 @@ taupf tm _tau =
      else (hypot _1 sig) * _tau - sig * tau1
 
 
-tauf :: GeoFloat f => TraverseMercator f -> PlaneAngle f -> PlaneAngle f
+tauf :: GeoFloat f => TransverseMercator f -> PlaneAngle f -> PlaneAngle f
 tauf tm taup =
   let _tau = taup / _e2m
       _stol = tol * (max _1 $ abs taup)
@@ -116,7 +116,7 @@ tauf tm taup =
 
 
 
-tmForward :: GeoFloat f => TraverseMercator f ->
+tmForward :: GeoFloat f => TransverseMercator f ->
             PlaneAngle f -> PlaneAngle f -> PlaneAngle f -> TM f
 tmForward tm lon0' lat' lon' =
   let cs@(lat, _, lon, _, _) =
@@ -161,7 +161,7 @@ tmFwNormalizeInput lon0' lat' lon' =
         else (_latsign, __lon)
   in (lat, latsign, lon, lonsign, backside)
 
-tmFwParameters :: GeoFloat f => TraverseMercator f -> PlaneAngle f -> PlaneAngle f -> (PlaneAngle f, PlaneAngle f, PlaneAngle f, PlaneAngle f)
+tmFwParameters :: GeoFloat f => TransverseMercator f -> PlaneAngle f -> PlaneAngle f -> (PlaneAngle f, PlaneAngle f, PlaneAngle f, PlaneAngle f)
 tmFwParameters tm lat lon =
   let e2m = _TMe2m tm
       e2  = _TMe2 tm
@@ -221,7 +221,7 @@ tmFwEvalMatrix'
 
 
 tmFwFinal :: RealFloat t =>
-           TraverseMercator t
+           TransverseMercator t
            -> (Dimensionless t, Dimensionless t, Dimensionless t1, Dimensionless t, Bool)
            -> (Dimensionless t, Dimensionless t, Dimensionless t, Dimensionless t)
            -> Dimensionless t

@@ -52,7 +52,7 @@ library
   --                 Wavecore.ECDIS.ECDIS
    --                Wavecore.ECDIS.INS
                    Data.Geo.UTM
-                   Data.Geo.TraverseMercator
+                   Data.Geo.TransverseMercator
   other-modules: Wavecore.ECDIS.Internal
                  Data.Geo.Math
                  Data.Geo.AlphaBeta
