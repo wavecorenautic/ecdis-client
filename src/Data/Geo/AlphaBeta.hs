@@ -1,5 +1,7 @@
 module Data.Geo.AlphaBeta where
 
+
+
 _alphaBeta6 :: Fractional t => t -> (t, [t], [t])
 _alphaBeta6 _n =
     let nx = _n * _n
@@ -25,6 +27,6 @@ _alphaBeta6 _n =
         _alp6 = 212378941*nx5/319334400;
         _bet6 = 20648693*nx5/638668800;
     in ( _b1
-       , [_alp1,_alp2,_alp3,_alp4,_alp5,_alp6]
-       , [_bet1,_bet2,_bet3,_bet4,_bet5,_bet6]
+       , [0, _alp1,_alp2,_alp3,_alp4,_alp5,_alp6]
+       , [0, _bet1,_bet2,_bet3,_bet4,_bet5,_bet6]
        )

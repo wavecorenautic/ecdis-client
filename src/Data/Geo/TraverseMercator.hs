@@ -135,9 +135,9 @@ tmForward tm lon0' lat' lon' =
       -- (xi0, xi1, eta0, eta1, yr0, yr1, yi0, yi1)
       mat0 = ( if (odd maxpow) then (alp !! maxpow) else _0, _0
              , _0, _0
-             , if (odd maxpow) then _2 * ((fromIntegral maxpow) *~ one) * (alp !! maxpow)
-               else _0, _0
-             , _0, _0 )
+             , if (odd maxpow)
+               then _2 * ((fromIntegral maxpow) *~ one) * (alp !! maxpow)
+               else _0, _0, _0, _0 )
   in tmFwFinal tm cs params s0 sh0 c0 ch0 .
      tmFwEvalMatrix ai ar alp startp $ mat0
 
@@ -239,13 +239,16 @@ tmFwFinal tm
       ai = c0 * sh0
       xi  = xip  + ar * xi0_ - ai * eta0_
       eta = etap + ai * xi0_ + ar * eta0_
-      _gamma = ((gamma_ - (atan2 yi1 yr1))) 
+      _gamma = gamma_ - (atan2 yi1 yr1)
       gamma = if (backside) then ((180 *~ degree) - _gamma) * latsign * lonsign
               else _gamma * latsign * lonsign
-      _k = k_ * (_TMb1 tm) * (hypot yr1 yi1)
-      k = _k * (_TMk0 tm)
-      y = (_TMa1 tm) * (_TMk0 tm) * latsign * (if backside then pi - xi else xi)
-      x = (_TMa1 tm) * (_TMk0 tm) * eta * lonsign
+      _a1 = (_TMa1 tm)
+      _k0 = (_TMk0 tm)
+      _b1 = (_TMb1 tm)
+      _k = k_ * _b1  * (hypot yr1 yi1)
+      k = _k * _k0
+      y = _a1 * _k0 * latsign * (if backside then pi - xi else xi)
+      x = _a1 * _k0 * eta * lonsign
   in TM { _easting = x,
           _northing = y,
           _meridianConvergence = gamma,

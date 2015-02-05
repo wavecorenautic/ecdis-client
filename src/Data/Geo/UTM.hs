@@ -122,10 +122,10 @@ utmForward' lat lon =
       ind :: Int
       ind = (P.+) (if utmp then 2 else 0) (if northp1 then 1 else 0)
   in if (zone1 == zoneSpec' INVALID) then Nothing
-     else Just $ (zone1, northp1
-                  tm { _easting = _easting tm + (falseeasting !! ind)
-                     , _northing = _northing tm + (falsenorthing !! ind)
-                     })
+     else Just $ (zone1, northp1,
+                       tm { _easting = _easting tm + (falseeasting !! ind)
+                          , _northing = _northing tm + (falsenorthing !! ind)
+                          })
           
 
 _lat_,_lon_ :: PlaneAngle Double
