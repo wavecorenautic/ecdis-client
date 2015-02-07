@@ -8,6 +8,7 @@ import FRP.Sodium
 import Numeric.Units.Dimensional.TF.Quantities
 import JavaScript.JQuery      hiding (Event)
 import JavaScript.CssElementQueries
+import JavaScript.SVG
 import Wavecore.ECDIS.Map
 
 
@@ -35,7 +36,6 @@ mkMap bZoom bCoord bWS par = do
 
   let mapObj = newSeaMap bMapSize bZoom bCoord
       viewBox = seaMapViewBox mapObj
-
       
   delUpdateViewBox <- sync $ listen (value viewBox) $
                       \vb -> void $ setAttr "viewbox" vb svg

@@ -4,7 +4,6 @@ module Main where
 
 import           Control.Applicative
 
-import           Control.Monad
 import           Data.Time
 import           FRP.Sodium
 import           JavaScript.JQuery      hiding (Event)
@@ -44,10 +43,10 @@ main = do
       bCoord = pure $ dmsCoord (52,23,42) (7,42,23) -- TODO Pos
   (mapObj, delMap) <- mkMap bZoom bCoord bWindowSize selMap
 
-  -- define the cleanup Handler
-  let cleanup = do
-        -- TODO kill clock thred
-        void $ sequence [ delTField, delSWClock, delSysClock
-                        , delMap, delWindowSize]
-  onBeforeUnload cleanup
-  return ()
+  -- cleanup handler
+  onBeforeUnload $ do
+    delTField
+    delSWClock
+    delSysClock
+    delMap
+    delWindowSize
