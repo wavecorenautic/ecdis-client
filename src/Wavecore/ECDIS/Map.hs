@@ -40,7 +40,7 @@ seaMapViewBox sm =
               concat [ show . round $ (ax /~ meter), " "
                      , show . round $ (ay /~ meter), " "
                      , show . round $ (w /~ meter), " "
-                     , show . round $ (h /~ meter), " "
+                     , show . round $ (h /~ meter)
                      ] ) _A _s
 
 pxPair :: (Integral i) => (i,i) -> (Dimensionless i, Dimensionless i)

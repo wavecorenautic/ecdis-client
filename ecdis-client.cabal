@@ -74,7 +74,8 @@ executable ecdis-client
                      ecdis-client,
                      coordinate,
                      geodetic,
-                     sodium
+                     sodium,
+                     dimensional-tf
     else
       buildable:     False
 
