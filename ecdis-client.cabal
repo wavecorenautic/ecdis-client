@@ -47,10 +47,8 @@ library
                  geodetic
 
   exposed-modules: Wavecore.ECDIS,
---                   Wavecore.ECDIS.Types
                    Wavecore.ECDIS.Clock
-  --                 Wavecore.ECDIS.ECDIS
-   --                Wavecore.ECDIS.INS
+                   Wavecore.ECDIS.Map
                    Data.Geo.UTM
                    Data.Geo.TransverseMercator
   other-modules: Wavecore.ECDIS.Internal

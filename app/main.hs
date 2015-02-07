@@ -18,6 +18,19 @@ import           GHCJS.DOM.DOMWindow
 import           JavaScript.JQuery      hiding (Event)
 import           System.Locale
 import           Wavecore.ECDIS.Clock
+import           Wavecore.ECDIS.Map
+import           JavaScript.CssElementQueries
+
+import qualified GHCJS.Foreign as F
+
+{-
+data ResizeSensor
+
+newResizeSensor :: (Event -> IO ()) -> JQuery -> IO ResizeSensor
+newResizeSensor = _newResizeSensor
+  
+
+-}
 
 
 mkSystemClock :: Int -> IO (ThreadId, Behavior UTCTime)
@@ -31,7 +44,7 @@ mkSystemClock f = do
   tid <- forkIO $ timerLoop
   return (tid, t)
 
-windowSizeB :: IO (Behavior (Int, Int)
+windowSizeB :: IO (Behavior (Int, Int))
 windowSizeB = do
   wnd' <- currentWindow
   let wnd = maybe (error "windowResizeB: unable to get currentWindow") id wnd'
@@ -54,16 +67,39 @@ windowResizeE = do
        sync $ pushE (w, h)
      return e
 
-mkMap :: Behavior (Int,Int) -> JQuery -> IO (IO ())
-mkMap bWS par = do
-  svg <- select mapTemplate >>= \s -> appendJQuery s par
-  let handler (_, h) =
-        let nh = if (h > 280 ) then (mapfactor * fromIntegral h) else 280
-        in void $ setHeight nh par
-  delWSHdlr <- sync $ listen (value bWS) handler
 
-  return $ do
-    delWSHdlr
+
+mkMap :: Behavior (Int,Int) -> JQuery -> IO (SeaMap Double Int, IO ())
+mkMap bWS par = do
+  svg <- select mapTemplate
+  void $ appendJQuery svg par 
+  let getSVGS = do
+        svgW <- getWidth svg
+        svgH <- getHeight svg
+        return $ (round svgW, round svgH)
+        
+  let handlerWS (_, h) =
+        let nh = if (h > 280 ) then (mapfactor * fromIntegral h) else 280
+        in do
+          void $ setHeight nh par          
+  delWSHdlr <- sync $ listen (value bWS) handlerWS
+
+  d0 <- getSVGS
+  (bMapSize, bMapSizePush) <- sync $ newBehavior d0  
+  delRSevent <- onResize par $ do
+    d <- getSVGS
+    sync $ bMapSizePush d
+
+  let bZoom = pure $ 25000
+      bCoord = pure $ dmsCoord (52,23,42) (7,42,23)
+      mapObj = newSeaMap bMapSize bZoom bCoord
+      viewBox = seaMapViewBox mapObj
+
+      
+  delUpdateViewBox <- sync $ listen (value viewBox) $
+                      \vb -> void $ setAttr "viewbox" vb svg
+  return (mapObj, do delUpdateViewBox >> delRSevent >> delWSHdlr)
+    
   where
     mapfactor = 0.72
     mapTemplate = "<svg style='min-width:250px;min-height:250px;height:100%;width:100%' />"
@@ -118,7 +154,14 @@ main = do
 
   -- connect the map
   selMap <- select "*[role='ecdis_map']"
-  delMap <- mkMap bWindowSize selMap
+  (mapObj, delMap) <- mkMap bWindowSize selMap
+
+--  void $ sync $ listen (updates $ _mapACoord mapObj) $ \b -> do
+--    print $ "new B"
+  
+
+
+
 
   let cleanup = do
         -- TODO kill clock thred

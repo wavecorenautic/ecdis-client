@@ -5,6 +5,7 @@ module Data.Geo.TransverseMercator
        , traverseMercator
        , tmAlphaBeta6
        , TM (..)
+       , TMR (..)
        , tmForward
        , tmReverse
        , tauf
@@ -132,7 +133,7 @@ tmReverse tm lon0 x y =
       _eta = x / sf
       xisign = (signum $ xi /~ one) *~ one
       etasign = (signum $ eta /~ one) *~ one
-      _xi = _xi * xisign
+      _xi = __xi * xisign
       eta = _eta * etasign
       backside = _xi > (pi / _2)
       xi = if backside then pi - _xi else _xi
@@ -157,7 +158,7 @@ tmReverse tm lon0 x y =
       _lon = if backside
              then ((180 *~ degree) - lam') * etasign
              else lam' * etasign
-      lon = angNormalize $ lon + angNormalize lon0
+      lon = angNormalize $ _lon + angNormalize lon0
       gamma = if backside then ((180 *~ degree) - gamma') * xisign
               else gamma' * xisign
       k = k' * (_TMk0 tm)
