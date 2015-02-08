@@ -4,15 +4,15 @@ module Main where
 
 import           Control.Applicative
 
+import qualified Data.Text                       as T
 import           Data.Time
 import           FRP.Sodium
-import           JavaScript.JQuery      hiding (Event)
-
+import           JavaScript.ECDIS.GeneralWidgets
+import           JavaScript.ECDIS.Map
+import           JavaScript.ECDIS.SystemClock
+import           JavaScript.JQuery               hiding (Event)
 import           Wavecore.ECDIS.Clock
 import           Wavecore.ECDIS.Map
-import           JavaScript.ECDIS.Map
-import           JavaScript.ECDIS.GeneralWidgets
-import           JavaScript.ECDIS.SystemClock
 
 
 main :: IO ()
@@ -25,7 +25,9 @@ main = do
 
   -- button to switch between utc/local time
   --(eSWClock, delSWClock) <- reactiveButton "UTC/LT" (pure ()) selClock
-  let (eSWClock, delSWClock) = (never, return ()) -- TODO event for switch
+  let delSWClock :: IO ()
+      delSWClock = return ()
+  let (eSWClock) = never -- TODO event for switch
       bTZ = pure utc -- TODO find timezone for current position
 
   -- the switch clock
@@ -43,10 +45,24 @@ main = do
       bCoord = pure $ dmsCoord (52,23,42) (7,42,23) -- TODO Pos
   (mapObj, delMap) <- mkMap bZoom bCoord bWindowSize selMap
 
-  -- cleanup handler
+
+  mpos <- select "*[role='ecdis_mouse_pos']"
+  _ <- sync $ listen (_mapPointer mapObj) $
+       \v -> case v of
+              MouseDown v' -> setText (T.pack $ show v') mpos >> return ()
+              MouseUp _ -> return ()
+
+
+{-
   onBeforeUnload $ do
+    delWindowSize
     delTField
     delSWClock
     delSysClock
-    delMap
-    delWindowSize
+  --  delMap
+-}
+  return ()
+
+
+
+  -- cleanup handler

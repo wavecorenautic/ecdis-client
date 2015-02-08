@@ -153,7 +153,13 @@ utmForward :: GeoFloat f =>
 utmForward lat lon = do
    (zonenorthp, tm) <- utmForward' lat lon
    return (zonenorthp, (_easting tm, _northing tm))                 
-                        
+
+utmReverse :: (GeoFloat f) => Int -> Bool -> Length f -> Length f ->
+             Maybe (PlaneAngle f, PlaneAngle f)                   
+utmReverse zone northp x y = do
+    r <- utmReverse' zone northp x y
+    return (_rLatitude r, _rLongitude r)
+       
 utmReverse' :: (GeoFloat f) => Int -> Bool -> Length f -> Length f -> Maybe (TMR f)
 utmReverse' zone northp x y
     | (isNanD meter x) || (isNanD meter y) || zone == zoneSpec' INVALID =
