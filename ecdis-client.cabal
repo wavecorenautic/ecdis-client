@@ -1,5 +1,5 @@
 name:                ecdis-client 
-version:             0.1.1
+version:             0.2.0
 synopsis:            ECDIS Client
 description:         Electronic Chart Display and Information System
 license:             BSD3 
@@ -16,7 +16,6 @@ cabal-version:       >= 1.8
 
 data-dir:            app_static
 data-files:          index.html
-                     js/jquery-2.1.3.min.js
                      js/modernizr-2.8.3.min.js
                      css/normalize-3.0.2.css
                      css/main.css
@@ -37,14 +36,10 @@ library
                  containers,
                  time,
                  mtl,
-                 lens,
                  sodium,
                  text,
                  transformers,
                  dimensional-tf,
-                 radian,
-                 coordinate,
-                 geodetic
 
   exposed-modules: Wavecore.ECDIS,
                    Wavecore.ECDIS.Clock
@@ -66,17 +61,12 @@ executable ecdis-client
                      data-default,
                      transformers,
                      time,
-                     lens,
                      text,
                      ghcjs-base,
                      ghcjs-dom,
-                     ghcjs-jquery,
                      ecdis-client,
-                     coordinate,
-                     geodetic,
                      sodium,
-                     dimensional-tf,
-                     data-default
+                     dimensional-tf
     else
       buildable:     False
 
