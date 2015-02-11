@@ -5,10 +5,13 @@
 module Wavecore.ECDIS.SeaMap where
 
 import           Control.Applicative
+import           Data.Geo.TransverseMercator
+import           Data.Geo.UTM
 import           Data.Maybe
 import           FRP.Sodium
 import           Numeric.Units.Dimensional.TF.Prelude
 import           Prelude                              ()
+import           Wavecore.ECDIS.Controller
 
 newtype Coordinate =
   MkCoordinate (PlaneAngle Double, PlaneAngle Double)
@@ -22,23 +25,37 @@ newtype UTMZone = UTMZone Int
   deriving (Eq)
 
 newtype UTMZonedCoordinate =
-  MkZonedCoordinate ( ((Bool, UTMZone),
+  MkZonedCoordinate ( ((UTMZone, Bool),
                        (PlaneAngle Double, Dimensionless Double)),
                      UTMCoordinate)
   deriving (Eq)
 
 
-class Controller w where
-  data ControllerCommand w :: *
-  data ControllerInput w :: *
-  data ControllerOutput w :: *
+_utmForward :: Coordinate -> UTMZonedCoordinate
+_utmForward (MkCoordinate (lat, lon)) =
+  let ((z',n), (TM x y conv scale)) =
+        maybe (error "utmForward: no result") id $
+        utmForward' lat lon
+      utm = MkUTMCoordinate (x, y)
+      cs = (conv, scale)
+      zn = (UTMZone z', n)
+  in MkZonedCoordinate ((zn, cs), utm)
 
-  newController :: ControllerInput w -> Event (ControllerCommand w) ->
-                   Reactive (ControllerOutput w)
+_utmZonedForward :: UTMZone -> Coordinate -> UTMCoordinate
+_utmZonedForward (UTMZone z) (MkCoordinate (lat,lon)) =
+  let (_, (TM x y _ _)) =
+        maybe (error "utmZonedForward: no result") id $
+        utmZonedForward z lat lon
+  in MkUTMCoordinate (x, y)
 
-  newControllerIO :: ControllerInput w -> Event (ControllerCommand w) ->
-                   IO (ControllerOutput w)
-  newControllerIO e i = sync $ newController e i
+
+_utmReverse :: Bool -> UTMZone -> UTMCoordinate -> Coordinate
+_utmReverse n (UTMZone z) (MkUTMCoordinate (x,y)) =
+  MkCoordinate $  maybe (error "utmReverse: no result") id $
+  utmReverse z n x y
+
+
+
 
 --
 -- SEA MAP
@@ -68,9 +85,6 @@ instance Controller SeaMap where
       _smInZoomFactor :: Behavior (SeaMapZoom),
       _smInMapSize :: Behavior (Dimensionless Double, Dimensionless Double),
       _smInPixelFactor :: Behavior (Length Double),
-      _smInUTMForward :: Coordinate -> UTMZonedCoordinate,
-      _smInUTMZonedForward :: UTMZone -> Coordinate -> UTMCoordinate,
-      _smInUTMReverse :: Bool -> UTMZone -> UTMCoordinate -> Coordinate,
       _smInExtHeading :: Behavior (Maybe (PlaneAngle Double))
       }
 
@@ -128,15 +142,15 @@ instance Controller SeaMap where
       curPos <- switch posSrcSwitch
 
       -- position and map transformation
-      let curPosUTMZoned' = fmap (_smInUTMForward i) curPos
+      let curPosUTMZoned' = fmap _utmForward curPos
           curPosUTMZoned  = fmap (\(MkZonedCoordinate a) -> a) curPosUTMZoned'
-          northp = fmap (fst.fst.fst) curPosUTMZoned
-          zone = fmap (snd.fst.fst) curPosUTMZoned
+          northp = fmap (snd.fst.fst) curPosUTMZoned
+          zone = fmap (fst.fst.fst) curPosUTMZoned
           meridianConvergence = fmap (fst.snd.fst) curPosUTMZoned
           projectionScale = fmap (snd.snd.fst) curPosUTMZoned
           curPosUTM = fmap snd curPosUTMZoned
-          utmRv = (_smInUTMReverse i) <$> northp <*> zone
-          utmFw = (_smInUTMZonedForward i) <$> zone
+          utmRv = _utmReverse <$> northp <*> zone
+          utmFw = _utmZonedForward <$> zone
 
       -- map viewport
       let pxZoom =
@@ -194,7 +208,7 @@ instance Controller SeaMap where
         }
 
 smDefaultCoord :: Coordinate
-smDefaultCoord = MkCoordinate (0 *~ degree, 0 *~ degree)
+smDefaultCoord = MkCoordinate (52.3 *~ degree, 7.1 *~ degree)
 
 seaMapSplitInputEvents :: Event (ControllerCommand SeaMap) ->
                           ( Event (ControllerCommand SeaMap)
@@ -210,6 +224,11 @@ seaMapSplitInputEvents e =
                                       SeaMapSetIntPos _ -> True
                                       _ -> False) e
   in (toggleInputE, setNorthingE, setIntPosE)
+
+
+
+
+
 
 
 

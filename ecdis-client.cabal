@@ -41,8 +41,7 @@ library
                  transformers,
                  dimensional-tf
 
-  exposed-modules: Wavecore.ECDIS,
---                   Wavecore.ECDIS.Clock
+  exposed-modules: Wavecore.ECDIS.Controller
                    Wavecore.ECDIS.SeaMap
                    Data.Geo.UTM
                    Data.Geo.TransverseMercator

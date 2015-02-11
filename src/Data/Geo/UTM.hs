@@ -1,23 +1,21 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 module Data.Geo.UTM where
 
 
-import qualified Prelude as P
-import Numeric.Units.Dimensional.TF.Prelude
+import           Numeric.Units.Dimensional.TF.Prelude
+import qualified Prelude                              as P
 
 
-import           Data.Text (Text)
-import           Text.Printf    
-import qualified Data.Text as T    
---import           Data.Geo.Geodetic
 import           Data.Geo.Math
 import           Data.Geo.TransverseMercator
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
+import           Text.Printf
 
 
-    
+
 data ZoneSpec =
   MINPSEUDOZONE |
   INVALID |
@@ -37,7 +35,7 @@ zoneSpec z = (zoneSpec' z) *~ degree
 zoneSpec' :: Num a => ZoneSpec -> a
 zoneSpec' MINPSEUDOZONE = P.negate 4
 zoneSpec' INVALID = P.negate 4
-zoneSpec' MATCH = P.negate 3 
+zoneSpec' MATCH = P.negate 3
 zoneSpec' UTM = P.negate 2
 zoneSpec' STANDARD = P.negate 1
 zoneSpec' MAXPSEUDOZONE = P.negate 1
@@ -47,24 +45,24 @@ zoneSpec' MINUTMZONE = 1
 zoneSpec' MAXUTMZONE = 60
 zoneSpec' MAXZONE = 60
 
-tile :: (GeoFloat f) => Length f                    
+tile :: (GeoFloat f) => Length f
 tile = 100 *~ kilo meter
 
 upseasting, utmeasting, maxutmSrow, minutmNrow ::
-    (GeoFloat f) => Dimensionless f       
+    (GeoFloat f) => Dimensionless f
 upseasting = 20 *~ one
 utmeasting = 5 *~ one
 maxutmSrow = 100 *~ one
 minutmNrow = 0 *~ one
 
-falseeasting :: GeoFloat f => [Length f]             
-falseeasting = 
+falseeasting :: GeoFloat f => [Length f]
+falseeasting =
   [  upseasting * tile,
      upseasting * tile,
      utmeasting * tile,
      utmeasting * tile
   ]
-  
+
 falsenorthing :: GeoFloat f => [Length f]
 falsenorthing =
   [ upseasting * tile, upseasting * tile
@@ -72,7 +70,7 @@ falsenorthing =
 
 wgs84semiMajor :: (GeoFloat f) => Length f
 wgs84semiMajor = 6378137.0 *~ meter
-wgs84flattening :: (GeoFloat f) => Dimensionless f                 
+wgs84flattening :: (GeoFloat f) => Dimensionless f
 wgs84flattening = (3.3528106647474805e-3) *~ one
 
 utmTransverseMercator :: (GeoFloat f) => TransverseMercator f
@@ -84,19 +82,19 @@ utmTransverseMercator =
           tmAlphaBeta6) of
       Just tm -> tm
       Nothing -> error "utmTransverseMercator: unable to create kernel for wgs84"
-                
+
 utmTauf, utmTaupf :: GeoFloat f => PlaneAngle f -> PlaneAngle f
 utmTauf = tauf utmTransverseMercator
-utmTaupf = taupf utmTransverseMercator          
+utmTaupf = taupf utmTransverseMercator
 
-centralMeridian :: (GeoFloat a) => Int ->  PlaneAngle a           
+centralMeridian :: (GeoFloat a) => Int ->  PlaneAngle a
 centralMeridian z =  fromIntegral ((P.-) ((P.*) 6 z) 183) *~ degree
 
 latitudeBand :: (GeoFloat a) => PlaneAngle a -> Int
 latitudeBand lat =
   let ilat = (floor $ lat /~ degree) :: Int
   in max (-10) $ min 9 $ (P.-) ((P.div) ((P.+) ilat 80) 8) 10
-     
+
 standardZone :: (GeoFloat a) => PlaneAngle a -> PlaneAngle a -> Int -> Int
 standardZone lat lon setzone
   | (not $ setzone >= (zoneSpec' MINPSEUDOZONE) &&
@@ -122,12 +120,16 @@ standardZone lat lon setzone
               then (P.*) 2 $ (P.+) 1 $ (P.div) 12 $ (P.+) ilon 183
               else zone
 
-  
+
 utmForward' :: GeoFloat f => PlaneAngle f -> PlaneAngle f ->
               Maybe ((Int, Bool), TM f)
 utmForward' lat lon =
+  utmZonedForward (standardZone lat lon (zoneSpec' UTM)) lat lon
+
+utmZonedForward :: GeoFloat f => Int -> PlaneAngle f -> PlaneAngle f ->
+              Maybe ((Int, Bool), TM f)
+utmZonedForward zone1 lat lon =
   let northp1 = lat >= (0 *~ degree)
-      zone1 = standardZone lat lon (zoneSpec' UTM)
       lon0 = centralMeridian $ zone1
       dlon' = lon - lon0
       idlon :: Int
@@ -152,14 +154,14 @@ utmForward :: GeoFloat f =>
   -> Maybe ((Int, Bool), (Length f, Length f))
 utmForward lat lon = do
    (zonenorthp, tm) <- utmForward' lat lon
-   return (zonenorthp, (_easting tm, _northing tm))                 
+   return (zonenorthp, (_easting tm, _northing tm))
 
 utmReverse :: (GeoFloat f) => Int -> Bool -> Length f -> Length f ->
-             Maybe (PlaneAngle f, PlaneAngle f)                   
+             Maybe (PlaneAngle f, PlaneAngle f)
 utmReverse zone northp x y = do
     r <- utmReverse' zone northp x y
     return (_rLatitude r, _rLongitude r)
-       
+
 utmReverse' :: (GeoFloat f) => Int -> Bool -> Length f -> Length f -> Maybe (TMR f)
 utmReverse' zone northp x y
     | (isNanD meter x) || (isNanD meter y) || zone == zoneSpec' INVALID =
@@ -175,7 +177,7 @@ utmReverse' zone northp x y
            then Just $ tmReverse utmTransverseMercator lon0 _x _y
            else error "utmReverse: UPS not implemented yet"
 
-                
+
 encodeZone :: Int -> Bool -> Bool -> Maybe Text
 encodeZone zone northp abbrev
     | zone == zoneSpec' INVALID = Nothing
@@ -190,7 +192,7 @@ encodeZone zone northp abbrev
                 else if northp then "north" else "south"
        in Just $ T.pack $ z ++ ns
 
-{-    
+{-
 _lat_,_lon_ :: PlaneAngle Double
 _lat_ = (49 *~ degree) + (29 *~ arcminute) + (13.6 *~ arcsecond)
 _lon_ = (8 *~ degree) + (27 *~ arcminute) + (58.6 *~ arcsecond)
@@ -204,7 +206,7 @@ u = let (tz, tn, t') = maybe (error "t") id t
 
 
 
---f a b = ( a *~ degree) ( b *~ degree)        
+--f a b = ( a *~ degree) ( b *~ degree)
 
 --f :: Double -> [(PlaneAngle Double, PlaneAngle Double)]
 f a' =
@@ -215,21 +217,21 @@ f a' =
         vs' = fmap (snd . fromJust) vs
     in sa' vs'
 
-aa :: Int -> IO ()       
+aa :: Int -> IO ()
 aa i = T.writeFile ("/tmp/test" ++ show i ++ ".svg") g
-  
-    
+
+
 g = T.concat [
     "<?xml version=\"1.0\" standalone=\"no\"?>\n",
-    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n", 
+    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n",
     "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n",
     "<svg width=\"800\" height=\"600\" viewBox=\"-40000000 -40000000 80000000 80000000\" ",
     "xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n",
     T.concat $ fmap f [(P.*) i 10 | i <- [-17 .. 17]],
     "\n</svg>\n"
     ]
---sa :: (Length Double, Length Double) -> (Int, Int)    
-sa' [] = T.empty       
+--sa :: (Length Double, Length Double) -> (Int, Int)
+sa' [] = T.empty
 sa' xs =
     let as = fmap (sa "L") $ drop 1 xs
         a = sa "M" $ head xs
@@ -244,11 +246,11 @@ minlon = (13.0 *~ degree) + (23 *~ arcminute)
 maxlon = (13.0) *~ degree + (46 *~ arcminute)
 
 
-sss _x = 
+sss _x =
     let (xmin,ymin) = snd . fromJust $ utmForward minlat minlon
         (xmax, ymax) = snd . fromJust $ utmForward maxlat maxlon
         (xl, yl) = (xmax - xmin, ymax - ymin)
-        ar = (xl / yl) /~ one       
+        ar = (xl / yl) /~ one
         y = round $ (P.*) _x ar
         x = round _x
         (_x0, _y0) = (xmin - 1 *~ kilo meter, ymin - 1*~ kilo meter)
@@ -259,7 +261,7 @@ sss _x =
                        ,"\" viewbox=\"", show x0, " ", show y0, " "
                        , show w, " ", show h, "\" "
                        , "xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"]
-       
+
 foo =
     let minlat,maxlat,minlon,maxlon,steplat,steplon :: PlaneAngle Double
         minlat = (54.0 *~ degree) + (12 *~ arcminute)
@@ -276,7 +278,7 @@ foo =
     in (latsteps, lonsteps)
 
 x = fmap (\l -> l /~ degree) $ snd foo
-       
+
 bar =
     let (latsteps,lonsteps) = foo
         ff lat = fmap (\lon -> (lat, lon)) lonsteps
@@ -289,7 +291,7 @@ sa p (xd, yd) =
         (x,y) = ((round (xd /~ meter)), (round (yd /~ meter)))
     in T.pack $ concat [p, show x, " ", show y ]
 
-sa' [] = T.empty       
+sa' [] = T.empty
 sa' xs =
     let as = fmap (sa "L") $ drop 1 xs
         a = sa "M" $ head xs
@@ -297,7 +299,7 @@ sa' xs =
     in T.concat ["<path d=\"", as',"\" stroke=\"red\" fill=\"white\" stroke-width=\"200\" />"]
 
 
-       
+
 
 f =
     let a = fmap (fmap (\(lat,lon) ->
@@ -306,29 +308,29 @@ f =
         b = fmap (fmap (\(lat,lon) ->
                             let as = fromJust $ utmForward lat lon
                             in snd as )) $ snd bar
-                            
-    in fmap sa' b 
+
+    in fmap sa' b
 
 
-aa :: Int -> IO ()       
+aa :: Int -> IO ()
 aa i = T.writeFile ("/tmp/test" ++ show i ++ ".svg") g
-  
-    
+
+
 g = T.concat [
     "<?xml version=\"1.0\" standalone=\"no\"?>\n",
-    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n", 
+    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n",
     "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n",
-    sss 1000,                                                             
+    sss 1000,
     ">\n",
     T.concat f,
     "\n</svg>\n"
-    ]       
+    ]
 
 {-
 1960712 1525217
 2005126 1527711
-        
-  44414    2494  
+
+  44414    2494
 
 
 
