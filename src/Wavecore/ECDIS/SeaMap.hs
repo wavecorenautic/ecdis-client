@@ -36,8 +36,9 @@ class Controller w where
   newController :: ControllerInput w -> Event (ControllerCommand w) ->
                    Reactive (ControllerOutput w)
 
-
-
+  newControllerIO :: ControllerInput w -> Event (ControllerCommand w) ->
+                   IO (ControllerOutput w)
+  newControllerIO e i = sync $ newController e i
 
 --
 -- SEA MAP
@@ -65,10 +66,10 @@ instance Controller SeaMap where
     SeaMapInput {
       _smInPosition :: Behavior (Maybe Coordinate),
       _smInZoomFactor :: Behavior (SeaMapZoom),
-      _smInMapSize :: Behavior (Dimensionless Int, Dimensionless Int),
+      _smInMapSize :: Behavior (Dimensionless Double, Dimensionless Double),
       _smInPixelFactor :: Behavior (Length Double),
       _smInUTMForward :: Coordinate -> UTMZonedCoordinate,
-      _smInUTMForward' :: UTMZone -> Coordinate -> UTMCoordinate,
+      _smInUTMZonedForward :: UTMZone -> Coordinate -> UTMCoordinate,
       _smInUTMReverse :: Bool -> UTMZone -> UTMCoordinate -> Coordinate,
       _smInExtHeading :: Behavior (Maybe (PlaneAngle Double))
       }
@@ -115,7 +116,8 @@ instance Controller SeaMap where
                 if (isExt) then (pushIsExternal False >> return intPos)
                 else do
                   pushIsExternal True
-                  let frJust = maybe (error "seaMapWidget: no external pos") id
+                  let frJust =
+                        maybe (error "SeaMap Controller: no external pos") id
                   return $ fmap frJust $ _smInPosition i
           switchPosSrcE :: Event (Behavior Coordinate)
           switchPosSrcE = execute $ fmap checkInputs $
@@ -134,16 +136,16 @@ instance Controller SeaMap where
           projectionScale = fmap (snd.snd.fst) curPosUTMZoned
           curPosUTM = fmap snd curPosUTMZoned
           utmRv = (_smInUTMReverse i) <$> northp <*> zone
-          utmFw = (_smInUTMForward' i) <$> zone
+          utmFw = (_smInUTMZonedForward i) <$> zone
 
       -- map viewport
       let pxZoom =
             liftA2 (\px (SeaMapZoom z) -> px * fmap fromIntegral z)
               (_smInPixelFactor i) (_smInZoomFactor i)
-          mapWidth = liftA2 (*) pxZoom . fmap (fmap fromIntegral . fst) $
+          mapWidth = liftA2 (*) pxZoom . fmap fst $
                       (_smInMapSize i)
           mapWidth2 = liftA2 (/) mapWidth (pure _2)
-          mapHeight = liftA2 (*) pxZoom . fmap (fmap fromIntegral . snd) $
+          mapHeight = liftA2 (*) pxZoom . fmap snd $
                       (_smInMapSize i)
           mapHeight2 = liftA2 (/) mapHeight (pure _2)
           mapDim = liftA2 (\a b -> (a,b)) mapWidth mapHeight
@@ -157,7 +159,7 @@ instance Controller SeaMap where
                           filterE not . updates $ extHeadingAvail
           northingChange = headingLostE `merge` setNorthingE
       (northingSwitch, pushNorthingSwitch) <- newBehavior MapNorth
-      let frJust = maybe (error "seaMapWidget: no extern heading") id
+      let frJust = maybe (error "SeaMap Controller: no extern heading") id
           onNorthingChange (SeaMapSetNorthing n) =
             case n of
               TrueNorth -> do pushNorthingSwitch TrueNorth >> return trueNorth
@@ -167,10 +169,12 @@ instance Controller SeaMap where
                 if (extAvail)
                 then do pushNorthingSwitch HeadingNorth
                         return $ fmap frJust (_smInExtHeading i)
-                else undefined
+                else do pushNorthingSwitch MapNorth >> return mapNorth
+          onNorthingChange _ =
+            error "SeaMap Controller: unexpxted Northing event"
           northingSwitchToE = execute $ fmap onNorthingChange northingChange
-      northingSwitch <- hold mapNorth northingSwitchToE
-      rotation <- switch northingSwitch
+      rotationSwitch <- hold mapNorth northingSwitchToE
+      rotation <- switch rotationSwitch
 
       return $ SeaMapOutput {
         _smExtPosAvail = extPosAvail,
@@ -182,6 +186,7 @@ instance Controller SeaMap where
         _smMeridianConvergence = meridianConvergence,
         _smProjectionScale = projectionScale,
         _smRotation = rotation,
+        _smNorthing = northingSwitch,
         _smUTMReverse = utmRv,
         _smUTMForward = utmFw,
         _smMapOrigin = mapOrigin,
@@ -205,3 +210,10 @@ seaMapSplitInputEvents e =
                                       SeaMapSetIntPos _ -> True
                                       _ -> False) e
   in (toggleInputE, setNorthingE, setIntPosE)
+
+
+
+data SeaMapControls
+
+instance Controller SeaMapControls where
+

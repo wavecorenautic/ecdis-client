@@ -2,13 +2,15 @@
 
 module JavaScript.CssElementQueries where
 
-import GHCJS.Foreign
-import JavaScript.CssElementQueries.Internal
-import JavaScript.JQuery
+import           GHCJS.DOM
+import           GHCJS.DOM.HTMLElement
+import           GHCJS.Foreign
+import           JavaScript.CssElementQueries.Internal
 
 
-onResize :: JQuery -> IO () -> IO (IO ())
-onResize s h = do
+onElementResize :: IsHTMLElement elem => elem -> IO () -> IO (IO ())
+onElementResize s h = do
+  let ref = toHTMLElement s
   cb <- asyncCallback AlwaysRetain h
-  sensor <- ceq_attach s cb
+  sensor <- ceq_attach ref cb
   return $ ceq_detach sensor >> release cb

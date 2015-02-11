@@ -7,7 +7,8 @@ module JavaScript.CssElementQueries.Internal where
 
 import GHCJS.Types
 import GHCJS.Foreign
-import JavaScript.JQuery
+import           GHCJS.DOM
+import           GHCJS.DOM.HTMLElement
 
 
 
@@ -19,7 +20,7 @@ type ResizeSensor = JSRef ResizeSensor_
 
 
 foreign import javascript unsafe "new ResizeSensor($1, $2);"
-  ceq_attach :: JQuery  -- ^ selector                       
+  ceq_attach ::  HTMLElement -- ^ selector                       
                 -> JSFun b -- ^ callback
                 -> IO (ResizeSensor)
 
