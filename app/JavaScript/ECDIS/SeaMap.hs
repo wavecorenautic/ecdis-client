@@ -45,8 +45,9 @@ instance Widget SeaMap where
     svg <- fmap castToElement $ htmlElementSetInnerHTML' par svgTemplate
 
     let getSVGDim = do
-          w <- elementGetClientWidth  svg
-          h <- elementGetClientHeight svg
+          w <- elementGetClientWidth  par
+          h <- elementGetClientHeight par
+          print $ mconcat ["svg dim (", show w, "/", show h, ")"]
           return (w *~ one, h *~ one)
     svgDim0 <- getSVGDim
     (svgDim, pushSvgDim) <- sync $ newBehavior svgDim0
