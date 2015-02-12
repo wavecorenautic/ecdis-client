@@ -119,7 +119,7 @@ standardZone lat lon setzone
          else if ((band == 9) && ((P.<) ilon 42) && ((P.>=) ilon 0))
               then (P.*) 2 $ (P.+) 1 $ (P.div) 12 $ (P.+) ilon 183
               else zone
-
+  | otherwise = (zoneSpec' INVALID)
 
 utmForward' :: GeoFloat f => PlaneAngle f -> PlaneAngle f ->
               Maybe ((Int, Bool), TM f)
@@ -131,11 +131,11 @@ utmZonedForward :: GeoFloat f => Int -> PlaneAngle f -> PlaneAngle f ->
 utmZonedForward zone1 lat lon =
   let northp1 = lat >= (0 *~ degree)
       lon0 = centralMeridian $ zone1
-      dlon' = lon - lon0
-      idlon :: Int
-      idlon = P.div ((P.+) 180 (floor $ dlon /~ degree)) 360
-      fdlon = (fromIntegral idlon) *~ degree
-      dlon = abs $ dlon - (360 *~ degree) * fdlon
+--      dlon' = lon - lon0
+--      idlon :: Int
+--      idlon = P.div ((P.+) 180 (floor $ dlon' /~ degree)) 360
+--      fdlon = (fromIntegral idlon) *~ degree
+--      dlon = abs $ dlon - (360 *~ degree) * fdlon
       utmp = zone1 /= zoneSpec' UPS
       tm = if (utmp)
            then tmForward utmTransverseMercator lon0 lat lon
@@ -167,8 +167,7 @@ utmReverse' zone northp x y
     | (isNanD meter x) || (isNanD meter y) || zone == zoneSpec' INVALID =
         Nothing
     | otherwise =
-        let aa = 'a'
-            utmp = zone /= zoneSpec' UPS
+        let utmp = zone /= zoneSpec' UPS
             ind = (P.+) (if utmp then 2 else 0) (if northp then 1 else 0)
             _x = x - (falseeasting !! ind)
             _y = y - (falsenorthing !! ind)

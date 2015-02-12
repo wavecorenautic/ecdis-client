@@ -10,7 +10,7 @@ import           Data.Geo.UTM
 import           Data.Maybe
 import           FRP.Sodium
 import           Numeric.Units.Dimensional.TF.Prelude
-import           Prelude                              ()
+import qualified Prelude                              as P ()
 import           Wavecore.ECDIS.Controller
 
 newtype Coordinate =
@@ -228,11 +228,30 @@ seaMapSplitInputEvents e =
 
 
 
+instance Controller SeaMapZoom where
+  data ControllerCommand SeaMapZoom = ZoomIn | ZoomOut
+  data ControllerInput SeaMapZoom =
+    SeaMapZoomInput {
+      _initZoom :: SeaMapZoom,
+      _zoomFactor :: (Dimensionless Int)
+      }
+  data ControllerOutput SeaMapZoom =
+    SeaMapZoomOutput {
+      _seaMapZoom :: Behavior SeaMapZoom
+      }
+
+  newController i e =
+    let zoomF ZoomIn (SeaMapZoom z)
+          = SeaMapZoom $ z - (_zoomFactor i)
+        zoomF ZoomOut (SeaMapZoom z)
+          = SeaMapZoom $ z + (_zoomFactor i)
+    in do
+      a <- accum (_initZoom i) (fmap zoomF e)
+      return SeaMapZoomOutput {
+        _seaMapZoom = a
+        }
 
 
 
 
-data SeaMapControls
-
-instance Controller SeaMapControls where
 

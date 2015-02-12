@@ -59,13 +59,16 @@ executable ecdis-client
                      old-locale,
                      data-default,
                      transformers,
+                     mtl,
                      time,
                      text,
                      ghcjs-base,
                      ghcjs-dom,
                      ecdis-client,
                      sodium,
-                     dimensional-tf
+                     dimensional-tf,
+                     blaze-html,
+                     shakespeare
     else
       buildable:     False
 
